@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico SPED - Reforma Tributária</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div th:replace="~{layout :: sidebar('sped')}"></div>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+        <header class="top-bar">
+            <div class="top-title">
+                <h1>Diagnóstico do SPED Fiscal (EFD ICMS/IPI)</h1>
+                <p>Cruzamento do Estoque e Apuração ICMS com os Novos Regimes do IBS e CBS</p>
+            </div>
+            <div class="action-buttons">
+                <form th:if="${diag != null}" th:action="@{/sped/limpar}" method="post" onsubmit="return confirm('Deseja realmente limpar os dados do diagnóstico do SPED Fiscal?');" style="display: inline;">
+                    <button type="submit" class="btn btn-secondary" style="border-color: #ef4444; color: #f87171;">
+                        <span>🗑️</span> Limpar SPED
+                    </button>
+                </form>
+                <form th:action="@{/sped/analisar-padrao}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-primary">
+                        <span>⚡</span> Analisar SPED da Pasta
+                    </button>
+                </form>
+            </div>
+        </header>
+
+        <!-- Alertas -->
+        <div th:if="${mensagemSucesso}" class="alert alert-success">
+            <span>✓</span> <span th:text="${mensagemSucesso}">Sucesso</span>
+        </div>
+        <div th:if="${mensagemErro}" class="alert alert-danger">
+            <span>⚠</span> <span th:text="${mensagemErro}">Erro</span>
+        </div>
+
+        <!-- Bloco de Upload do SPED -->
+        <div class="content-card" style="margin-bottom: 24px; padding: 18px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+                <div>
+                    <strong style="display: block; font-size: 15px;">Importar Outro Arquivo SPED Fiscal (.txt)</strong>
+                    <span style="font-size: 13px; color: var(--text-muted);">Envie um arquivo EFD ICMS/IPI de qualquer competência para simulação automática.</span>
+                </div>
+                <form th:action="@{/sped/upload}" method="post" enctype="multipart/form-data" class="form-inline">
+                    <input type="file" name="arquivoSped" class="form-control" accept=".txt" required>
+                    <button type="submit" class="btn btn-secondary">Diagnosticar Arquivo</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Conteúdo do Diagnóstico -->
+        <div th:if="${diag != null}">
+            <!-- Resumo da Empresa -->
+            <section class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-header">Empresa / CNPJ</div>
+                    <div style="font-weight: 700; margin-top: 8px; font-size: 16px;" th:text="${diag.razaoSocial}">Empresa</div>
+                    <div class="kpi-footer" th:text="${diag.cnpj} + ' (' + ${diag.uf} + ')'">CNPJ</div>
+                </div>
+
+                <div class="kpi-card success">
+                    <div class="kpi-header">Cesta Básica Nacional (Alíq. ZERO)</div>
+                    <div class="kpi-value" style="color: var(--success);" th:text="${diag.ncmsCestaBasica} + ' NCMs'">0 NCMs</div>
+                    <div class="kpi-footer">cClassTrib 200003 (Anexo I)</div>
+                </div>
+
+                <div class="kpi-card cyan">
+                    <div class="kpi-header">Alimentos com Redução 60%</div>
+                    <div class="kpi-value" style="color: var(--cyan);" th:text="${diag.ncmsAlimentosReduzidos} + ' NCMs'">0 NCMs</div>
+                    <div class="kpi-footer">cClassTrib 200034 (Anexo VII)</div>
+                </div>
+
+                <div class="kpi-card purple">
+                    <div class="kpi-header">Catálogo Auditado (Reg. 0200)</div>
+                    <div class="kpi-value" style="color: var(--purple);" th:text="${diag.totalProdutos0200}">0</div>
+                    <div class="kpi-footer" th:text="${diag.totalNcmsDistintos} + ' NCMs distintos cadastrados'">0 NCMs</div>
+                </div>
+            </section>
+
+            <!-- Comparativo dos Regimes: Atual vs Reforma -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                <div class="content-card" style="margin-bottom: 0;">
+                    <div class="card-title" style="color: #f59e0b; margin-bottom: 16px;">🏛️ Modelo Atual no SPED (ICMS Maranhão)</div>
+                    <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                            <span style="color: var(--text-secondary);">Vendas com Redução de Base (CST 020):</span>
+                            <strong th:text="'R$ ' + ${#numbers.formatDecimal(diag.vendasReducaoBaseCst020, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                            <span style="color: var(--text-secondary);">Vendas com Substituição Tributária (CST 060):</span>
+                            <strong th:text="'R$ ' + ${#numbers.formatDecimal(diag.vendasSubstTribCst060, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                            <span style="color: var(--text-secondary);">Transferências entre Matriz e Filial:</span>
+                            <strong th:text="'R$ ' + ${#numbers.formatDecimal(diag.vendasTransferencias, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-secondary);">ICMS Próprio Recolhido no Mês (E110):</span>
+                            <strong style="color: var(--danger);" th:text="'R$ ' + ${#numbers.formatDecimal(diag.icmsRecolher, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-card" style="margin-bottom: 0;">
+                    <div class="card-title" style="color: var(--success); margin-bottom: 16px;">🚀 Impacto Direto na Reforma Tributária</div>
+                    <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                            <span style="color: var(--text-secondary);">Cesta Básica Nacional (IBS/CBS):</span>
+                            <strong style="color: var(--success);">Alíquota ZERO (CST 200)</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                            <span style="color: var(--text-secondary);">Regime de ICMS-ST no Comércio:</span>
+                            <strong style="color: var(--cyan);">EXTINTO (Sem MVA e Antecipações)</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                            <span style="color: var(--text-secondary);">Transferências Matriz / Filial:</span>
+                            <strong style="color: var(--primary);">Não Incidência (CST 410)</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-secondary);">Retenção no Split Payment bancário:</span>
+                            <strong style="color: var(--success);">Isento nas Vendas de Cesta Básica</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Amostra de Produtos Mapeados -->
+            <section class="content-card">
+                <div class="card-title" style="margin-bottom: 16px;">Classificação Fiscal dos Produtos do SPED (Amostra Registro 0200)</div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Cód. SPED</th>
+                                <th>Descrição da Mercadoria</th>
+                                <th>NCM</th>
+                                <th>cClassTrib Sugerido</th>
+                                <th>Enquadramento Legal</th>
+                                <th>CST IBS/CBS</th>
+                                <th>Alíquota Efetiva</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="it : ${diag.amostraProdutos}">
+                                <td><code th:text="${it.codItem}">001</code></td>
+                                <td th:text="${it.descricao}">Descrição</td>
+                                <td><code th:text="${it.ncm}">0000.00.00</code></td>
+                                <td>
+                                    <span class="badge badge-cclass" th:text="${it.cClassTribSugerido}">200003</span>
+                                </td>
+                                <td th:text="${it.enquadramentoReforma}">Cesta Básica</td>
+                                <td><strong th:text="${it.cstSugerido}">200</strong></td>
+                                <td>
+                                    <span th:text="${it.aliquotaEfetiva}" style="font-weight: 600;" th:styleappend="${#strings.contains(it.aliquotaEfetiva, '0,00')} ? 'color: var(--success);' : 'color: var(--primary);'">0,00%</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <div th:unless="${diag != null}" class="content-card" style="text-align: center; padding: 48px 24px;">
+            <div style="font-size: 42px; margin-bottom: 14px;">📦</div>
+            <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Nenhum SPED Fiscal Carregado no Momento</h3>
+            <p style="color: var(--text-muted); max-width: 520px; margin: 0 auto 20px auto; font-size: 14px;">
+                A base do SPED Fiscal está limpa. Você pode analisar o arquivo SPED padrão disponível na pasta do projeto ou fazer upload de um novo arquivo .txt da EFD ICMS/IPI.
+            </p>
+            <form th:action="@{/sped/analisar-padrao}" method="post" style="display: inline-block;">
+                <button type="submit" class="btn btn-primary" style="padding: 10px 20px;">
+                    <span>⚡</span> Analisar Arquivo SPED Padrão da Pasta
+                </button>
+            </form>
+        </div>
+    </main>
+
+</body>
+</html>

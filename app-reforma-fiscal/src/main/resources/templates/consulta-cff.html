@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabela CFF / SVRS - Reforma Tributária</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div th:replace="~{layout :: sidebar('cff')}"></div>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+        <header class="top-bar">
+            <div class="top-title">
+                <h1>Classificação Fiscal de Fornecimento (CFF / SVRS)</h1>
+                <p>Tabela Oficial de Códigos de Classificação Tributária (cClassTrib), CST e Reduções da LC 214/2025</p>
+            </div>
+        </header>
+
+        <!-- Filtro de Busca -->
+        <section class="content-card" style="margin-bottom: 24px;">
+            <form th:action="@{/consulta-cff}" method="get" class="form-inline">
+                <input type="text" name="q" class="form-control" style="flex: 1;" placeholder="Digite o código (ex: 200003), CST, NCM ou descrição (ex: café, arroz, carne)..." th:value="${query}">
+                <button type="submit" class="btn btn-primary">Buscar na Tabela</button>
+                <a th:if="${query != null and query != ''}" th:href="@{/consulta-cff}" class="btn btn-secondary">Limpar Busca</a>
+            </form>
+        </section>
+
+        <!-- Tabela de Classificações -->
+        <section class="content-card">
+            <div class="card-header-flex">
+                <div class="card-title">
+                    <span>Regras Cadastradas na SVRS</span>
+                    <span style="font-size: 13px; color: var(--text-muted); font-weight: normal; margin-left: 8px;" th:text="'(' + ${totalRegras} + ' classificações encontradas)'">(0)</span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>cClassTrib</th>
+                            <th>CST Esperado</th>
+                            <th>Descrição da Classificação</th>
+                            <th>Redução IBS</th>
+                            <th>Redução CBS</th>
+                            <th>NCMs Vinculados</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${#lists.isEmpty(regras)}">
+                            <td colspan="6" style="text-align: center; padding: 35px; color: var(--text-muted);">
+                                Nenhuma classificação encontrada com os termos pesquisados.
+                            </td>
+                        </tr>
+                        <tr th:each="r : ${regras}">
+                            <td>
+                                <span class="badge badge-cclass" style="font-size: 13px; font-weight: 700;" th:text="${r.codigo}">200003</span>
+                            </td>
+                            <td>
+                                <strong th:text="${r.cstEsperado}">200</strong>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--text-primary);" th:text="${r.nome}">Descrição</div>
+                            </td>
+                            <td>
+                                <span th:if="${r.percRedIbs > 0}" style="color: var(--success); font-weight: 600;" th:text="${#numbers.formatDecimal(r.percRedIbs, 1, 'POINT', 1, 'COMMA')} + '%'">100%</span>
+                                <span th:unless="${r.percRedIbs > 0}" style="color: var(--text-muted);">0%</span>
+                            </td>
+                            <td>
+                                <span th:if="${r.percRedCbs > 0}" style="color: var(--success); font-weight: 600;" th:text="${#numbers.formatDecimal(r.percRedCbs, 1, 'POINT', 1, 'COMMA')} + '%'">100%</span>
+                                <span th:unless="${r.percRedCbs > 0}" style="color: var(--text-muted);">0%</span>
+                            </td>
+                            <td>
+                                <span th:if="${#lists.isEmpty(r.ncmsPermitidos)}" style="color: var(--text-muted); font-size: 12px;">Todos (Sem anexo restritivo)</span>
+                                <span th:unless="${#lists.isEmpty(r.ncmsPermitidos)}" style="color: var(--primary); font-size: 12px; font-weight: 600;" th:text="${#lists.size(r.ncmsPermitidos)} + ' NCMs no Anexo'">10 NCMs</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+</body>
+</html>

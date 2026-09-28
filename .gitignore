@@ -1,0 +1,43 @@
+# Maven / Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Base de Dados H2 e dados locais
+**/data/
+*.mv.db
+*.trace.db
+
+# Arquivos Fiscais e Dados Reais (Privacidade e Segurança)
+xml/
+*.zip
+*.rar
+SpedEFD*.txt
+*.txt
+relatorio_auditoria_reforma.html
+relatorio_auditoria_reforma.xlsx
+*.xml
+!pom.xml
+
+# IDEs e Editores
+.vscode/
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+
+# Logs e Temporários
+*.log
+logs/
+temp/
+tmp/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env

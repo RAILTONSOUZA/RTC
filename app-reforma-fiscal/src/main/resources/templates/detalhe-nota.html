@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes da Nota Fiscal - Reforma Tributária</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div th:replace="~{layout :: sidebar('auditoria-xml')}"></div>
+
+    <!-- Main Content -->
+    <main class="main-wrapper">
+        <header class="top-bar">
+            <div class="top-title">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <h1>Detalhes e Auditoria de Itens da NF-e</h1>
+                    <span th:if="${nf.tipoFluxo == 'ENTRADA_FORNECEDOR'}" class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 13px;">🏢 ENTRADA DE FORNECEDOR</span>
+                    <span th:if="${nf.tipoFluxo == 'SAIDA_COMABEL'}" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 13px;" th:text="'🛒 SAÍDA: ' + (${empresaAuditada != null and empresaAuditada.isIdentificada()} ? ${empresaAuditada.nomeCurto} : 'EMPRESA AUDITADA')">🛒 SAÍDA DA EMPRESA</span>
+                    <span th:if="${nf.tipoFluxo == 'TRANSFERENCIA_INTERNA'}" class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; font-size: 13px;">🔄 TRANSFERÊNCIA MATRIZ/FILIAL</span>
+                </div>
+                <p th:text="'NF-e Nº ' + ${nf.nNF} + ' | Série ' + ${nf.serie} + ' | Chave: ' + ${nf.chNFe}">NF-e</p>
+            </div>
+            <div class="action-buttons">
+                <a th:href="@{/auditoria-xml}" class="btn btn-secondary">
+                    <span>&larr;</span> Voltar para a Lista
+                </a>
+            </div>
+        </header>
+
+        <!-- Informações do Cabeçalho -->
+        <section class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-header">Emitente</div>
+                <div style="font-weight: 700; margin-top: 8px; font-size: 16px;" th:text="${nf.emitNome}">Emitente</div>
+                <div class="kpi-footer" th:text="${nf.emitCnpj} + ' - ' + ${nf.emitUf}">CNPJ</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-header">Destinatário</div>
+                <div style="font-weight: 700; margin-top: 8px; font-size: 16px;" th:text="${nf.destNome}">Destinatário</div>
+                <div class="kpi-footer" th:text="${nf.destCnpj} + ' - ' + ${nf.destUf}">CNPJ</div>
+            </div>
+
+            <div class="kpi-card cyan">
+                <div class="kpi-header">Totais da Nota</div>
+                <div class="kpi-value" style="font-size: 20px;" th:text="'R$ ' + ${#numbers.formatDecimal(nf.vNF, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+                <div class="kpi-footer" th:text="'Base IBS/CBS: R$ ' + ${#numbers.formatDecimal(nf.vBcIbsCbs, 1, 'POINT', 2, 'COMMA')}">Base</div>
+            </div>
+
+            <div class="kpi-card" th:classappend="${nf.status == 'CONFORME'} ? 'success' : ''">
+                <div class="kpi-header">Status Geral</div>
+                <div class="kpi-value" style="font-size: 20px;" th:styleappend="${nf.status == 'CONFORME'} ? 'color: var(--success);' : 'color: var(--danger);'" th:text="${nf.status}">CONFORME</div>
+                <div class="kpi-footer" th:text="${nf.obsTotais}">Totais</div>
+            </div>
+        </section>
+
+        <!-- Banner de Orientação e Correção Recomendada Geral -->
+        <section th:if="${nf.status != 'CONFORME'}" class="content-card" style="border-left: 4px solid #f59e0b; background: rgba(245, 158, 11, 0.05); margin-bottom: 24px;">
+            <div style="display: flex; align-items: flex-start; gap: 14px;">
+                <div style="font-size: 24px; line-height: 1;">💡</div>
+                <div style="flex: 1;">
+                    <h3 style="font-size: 15px; font-weight: 700; color: #f59e0b; margin-bottom: 6px;">Diagnóstico de Inconsistência e Ação Corretiva Indicada</h3>
+                    <p style="font-size: 13px; color: var(--text-main); margin-bottom: 8px; line-height: 1.5;" th:text="${nf.correcaoSugerida}">
+                        Instruções para regularização tributária da nota.
+                    </p>
+                    <div style="font-size: 12px; color: var(--text-muted);">
+                        Consulte na tabela abaixo a recomendação individualizada por item baseada nas classificações oficiais vigentes da SVRS / LC 214/2025.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tabela de Itens Auditados -->
+        <section class="content-card">
+            <div class="card-header-flex">
+                <div class="card-title">
+                    <span>Itens da Nota Fiscal e Auditoria SVRS / Reforma Tributária</span>
+                    <span style="font-size: 13px; color: var(--text-muted); font-weight: normal; margin-left: 8px;" th:text="'(' + ${#lists.size(itens)} + ' produtos)'">(0)</span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Descrição do Produto</th>
+                            <th>NCM</th>
+                            <th>CFOP</th>
+                            <th>Valor Item</th>
+                            <th>CST ICMS</th>
+                            <th>Grupo IBS/CBS</th>
+                            <th>cClassTrib</th>
+                            <th>CST IBS</th>
+                            <th>Base IBS</th>
+                            <th>Red. %</th>
+                            <th>Status</th>
+                            <th>Apontamentos</th>
+                            <th>💡 Correção Indicada (Conformidade Sugerida)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="it : ${itens}">
+                            <td><strong th:text="'#' + ${it.nItem}">#1</strong></td>
+                            <td>
+                                <strong th:text="${it.xProd}">Produto</strong>
+                                <div style="font-size: 11px; color: var(--text-muted);" th:text="'Cód: ' + ${it.cProd}">001</div>
+                            </td>
+                            <td><code th:text="${it.ncm}">0000.00.00</code></td>
+                            <td th:text="${it.cfop}">5102</td>
+                            <td th:text="'R$ ' + ${#numbers.formatDecimal(it.vProd, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                            <td th:text="${it.cstIcms}">00</td>
+                            <td>
+                                <span th:if="${it.hasIbsCbs}" class="badge badge-conforme">PRESENTE</span>
+                                <span th:unless="${it.hasIbsCbs}" class="badge badge-divergente">AUSENTE</span>
+                            </td>
+                            <td>
+                                <span th:if="${it.cClassTrib != ''}" class="badge badge-cclass" th:text="${it.cClassTrib}">200003</span>
+                                <span th:unless="${it.cClassTrib != ''}" style="color: var(--text-muted);">-</span>
+                            </td>
+                            <td th:text="${it.cstIbsCbs != '' ? it.cstIbsCbs : '-'}">200</td>
+                            <td th:text="'R$ ' + ${#numbers.formatDecimal(it.vBcIbsCbs, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                            <td th:text="${#numbers.formatDecimal(it.pRedAliqIbs, 1, 'POINT', 1, 'COMMA')} + '%'">100%</td>
+                            <td>
+                                <span class="badge" th:classappend="${it.status == 'CONFORME'} ? 'badge-conforme' : 'badge-divergente'" th:text="${it.status}">CONFORME</span>
+                            </td>
+                            <td style="max-width: 250px;">
+                                <div th:if="${it.status == 'CONFORME'}" style="color: var(--success); font-size: 12px;">
+                                    ✓ NCM e CST conciliados com a SVRS
+                                </div>
+                                <div th:unless="${it.status == 'CONFORME'}" style="color: var(--danger); font-size: 12px; font-weight: 500;" th:text="${it.ocorrenciasFormatadas}">
+                                    Divergência
+                                </div>
+                            </td>
+                            <td style="min-width: 280px; max-width: 360px;">
+                                <div th:if="${it.status == 'CONFORME'}" style="color: var(--success); font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                                    <span>✓ Operação em conformidade</span>
+                                </div>
+                                <div th:unless="${it.status == 'CONFORME'}" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 6px; padding: 8px 10px; font-size: 12px;">
+                                    <div style="color: var(--text-main); line-height: 1.4; margin-bottom: 6px;" th:text="${it.correcaoSugerida}">
+                                        Sugestão de correção
+                                    </div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 6px; font-size: 11px;">
+                                        <span th:if="${it.cClassTribSugerido != null and it.cClassTribSugerido != ''}" class="badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8;">
+                                            cClass: <strong th:text="${it.cClassTribSugerido}">000001</strong>
+                                        </span>
+                                        <span th:if="${it.cstIbsCbsSugerido != null and it.cstIbsCbsSugerido != ''}" class="badge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc;">
+                                            CST: <strong th:text="${it.cstIbsCbsSugerido}">000</strong>
+                                        </span>
+                                        <span th:if="${it.pRedSugerido != null and it.pRedSugerido > 0}" class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">
+                                            Redução: <strong th:text="${it.pRedSugerido} + '%'">60%</strong>
+                                        </span>
+                                    </div>
+                                    <div th:if="${it.fundamentacaoSugerida != null and it.fundamentacaoSugerida != ''}" style="font-size: 10px; color: var(--text-muted); margin-top: 5px;" th:text="'⚖️ ' + ${it.fundamentacaoSugerida}">
+                                        Base Legal
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+</body>
+</html>

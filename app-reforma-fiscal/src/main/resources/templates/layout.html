@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reforma Fiscal - IBS / CBS</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Sidebar Fragment -->
+    <aside class="sidebar" th:fragment="sidebar (active)">
+        <div class="sidebar-brand">
+            <span class="brand-icon">⚡</span>
+            <div style="overflow: hidden;">
+                <div class="brand-title" th:text="${empresaAuditada != null and empresaAuditada.isIdentificada() ? empresaAuditada.nomeCurto : 'AUDITORIA FISCAL'}">AUDITORIA FISCAL</div>
+                <div class="brand-subtitle">Reforma Tributária 2026</div>
+            </div>
+        </div>
+
+        <!-- Painel da Empresa Auditada e Seletor -->
+        <div style="margin: 0 12px 14px 12px; padding: 10px; background: rgba(30, 41, 59, 0.7); border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="font-size: 11px; font-weight: 600; color: #94a3b8; display: flex; align-items: center; gap: 4px; margin: 0;">
+                    <span>🏢</span> <span>EMPRESA AUDITADA:</span>
+                </label>
+                <a href="javascript:void(0)" onclick="document.getElementById('modalCnpjAuditado').style.display='flex'" style="font-size: 11px; color: #60a5fa; text-decoration: none; cursor: pointer; font-weight: 600;" title="Importar XML de nota emitida para definir empresa">
+                    ➕ Definir (XML)
+                </a>
+            </div>
+
+            <!-- Se houver mais de uma empresa auditada na base, permite escolher -->
+            <div th:if="${todasEmpresas != null and #lists.size(todasEmpresas) > 1}">
+                <select onchange="window.location.href='/selecionar-empresa?cnpj=' + this.value" class="form-control" style="font-size: 11px; padding: 4px 6px; width: 100%; background: #0f172a; color: #f8fafc; border-color: #334155; cursor: pointer;">
+                    <option value="TODAS" th:selected="${cnpjAtivo == null or cnpjAtivo == 'TODAS'}">🌐 Todas (Consolidado)</option>
+                    <option th:each="emp : ${todasEmpresas}" th:value="${emp.cnpjChave}" th:text="${emp.nomeCurto + ' (' + emp.cnpjPrincipal + ')'}" th:selected="${cnpjAtivo == emp.cnpjChave or cnpjAtivo == emp.cnpjRaiz}">Empresa</option>
+                </select>
+            </div>
+
+            <!-- Se houver apenas 1 empresa ou nenhuma -->
+            <div th:unless="${todasEmpresas != null and #lists.size(todasEmpresas) > 1}" style="font-size: 11px;">
+                <div th:if="${empresaAuditada != null and empresaAuditada.isIdentificada()}" style="color: #e2e8f0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" th:text="${empresaAuditada.nomeCurto}">Nome Empresa</div>
+                <div th:if="${empresaAuditada != null and empresaAuditada.isIdentificada()}" style="color: #94a3b8; font-size: 10.5px;" th:text="${empresaAuditada.cnpjPrincipal}">00.000.000/0000-00</div>
+                <div th:unless="${empresaAuditada != null and empresaAuditada.isIdentificada()}" style="color: #94a3b8; font-style: italic;">
+                    Nenhum CNPJ informado
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a th:href="@{/dashboard}" class="nav-item" th:classappend="${active == 'dashboard'} ? 'active' : ''">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard Geral</span>
+            </a>
+            <a th:href="@{/indicadores}" class="nav-item" th:classappend="${active == 'indicadores'} ? 'active' : ''">
+                <span class="nav-icon">📈</span>
+                <span>Indicadores IBS/CBS</span>
+            </a>
+            <a th:href="@{/auditoria-xml}" class="nav-item" th:classappend="${active == 'auditoria-xml'} ? 'active' : ''">
+                <span class="nav-icon">📑</span>
+                <span>Auditoria de XMLs</span>
+            </a>
+            <a th:href="@{/sped}" class="nav-item" th:classappend="${active == 'sped'} ? 'active' : ''">
+                <span class="nav-icon">📦</span>
+                <span>Diagnóstico SPED</span>
+            </a>
+            <a th:href="@{/consulta-cff}" class="nav-item" th:classappend="${active == 'cff'} ? 'active' : ''">
+                <span class="nav-icon">🔍</span>
+                <span>Tabela CFF / SVRS</span>
+            </a>
+            <a th:href="@{/exportar/relatorio-executivo-pdf}" class="nav-item" style="color: #60a5fa; font-weight: 600;">
+                <span class="nav-icon">📄</span>
+                <span>Relatório Executivo (PDF)</span>
+            </a>
+            <a th:href="@{/exportar/excel}" class="nav-item">
+                <span class="nav-icon">📥</span>
+                <span>Relatório Geral Excel</span>
+            </a>
+            <a th:href="@{/auditoria-xml/exportar-divergencias}" class="nav-item" style="color: #fbbf24;">
+                <span class="nav-icon">⚠️</span>
+                <span>Itens com Divergência (.xlsx)</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div style="font-weight: 600; color: var(--text-secondary);">LC 214/2025 & EC 132/2023</div>
+            <div style="margin-top: 4px; color: #4ade80;">● Modo Transição 2026</div>
+        </div>
+        <!-- Modal Global para Definir Empresa Auditada via XML -->
+        <div id="modalCnpjAuditado" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+            <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; width: 90%; max-width: 480px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); text-align: left;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 0; display: flex; align-items: center; gap: 8px;">
+                        <span>🏢</span> Definir Empresa para Auditoria
+                    </h3>
+                    <button type="button" onclick="document.getElementById('modalCnpjAuditado').style.display='none'" style="background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer; line-height: 1;">&times;</button>
+                </div>
+                <p style="font-size: 13px; color: #94a3b8; margin-bottom: 18px; line-height: 1.5;">
+                    Importe o <strong>XML de uma nota emitida pela empresa</strong>. Os dados oficiais (CNPJ, Razão Social, Inscrição Estadual, UF e Município) serão lidos automaticamente.
+                </p>
+                <form th:action="@{/auditoria-xml/definir-empresa-xml}" method="post" enctype="multipart/form-data">
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">Arquivo XML da Nota Fiscal Emitida:</label>
+                        <input type="file" name="arquivoXmlEmpresa" class="form-control" accept=".xml" required style="width: 100%; font-size: 13px; padding: 8px 12px; background: #0f172a; border: 1px solid #334155; color: #f8fafc; border-radius: 6px;">
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" onclick="document.getElementById('modalCnpjAuditado').style.display='none'" class="btn btn-secondary" style="font-size: 12px; padding: 7px 14px;">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" style="font-size: 12px; padding: 7px 16px;">🏢 Importar e Definir</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </aside>
+
+</body>
+</html>

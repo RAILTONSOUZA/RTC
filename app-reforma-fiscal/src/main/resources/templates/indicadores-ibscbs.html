@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Indicadores IBS / CBS - Reforma Tributária</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .indicador-box-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 16px 0 20px 0;
+        }
+        .indicador-box {
+            padding: 12px 18px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .indicador-box.ibs {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+        .indicador-box.cbs {
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+        }
+        .indicador-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .indicador-box.ibs .indicador-label { color: #34d399; }
+        .indicador-box.cbs .indicador-label { color: #38bdf8; }
+        .indicador-val {
+            font-size: 22px;
+            font-weight: 700;
+        }
+        .indicador-box.ibs .indicador-val { color: #10b981; }
+        .indicador-box.cbs .indicador-val { color: #38bdf8; }
+        .section-subhead {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 20px 0 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .table-indicadores th {
+            font-size: 12px;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+        .table-indicadores td {
+            font-size: 12px;
+            padding: 9px 12px;
+        }
+        .val-num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        .val-ibs {
+            color: #10b981;
+            font-weight: 600;
+            text-align: right;
+        }
+        .val-cbs {
+            color: #38bdf8;
+            font-weight: 600;
+            text-align: right;
+        }
+        .card-modelo {
+            margin-bottom: 28px;
+            border-top: 3px solid var(--accent);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Fragment -->
+    <div th:replace="~{layout :: sidebar('indicadores')}"></div>
+
+    <!-- Conteúdo Principal -->
+    <main class="main-wrapper">
+        <header class="top-bar">
+            <div class="top-title">
+                <h1>Dashboard de Indicadores IBS / CBS</h1>
+                <p>Resumo analítico de apuração e distribuição tributária por Modelo (NF-e 55 e NFC-e 65), CST e Classificação (cClassTrib).</p>
+            </div>
+            <div class="action-buttons" style="display: flex; align-items: center; gap: 8px;">
+                <!-- Filtro de Fluxo -->
+                <form method="get" th:action="@{/indicadores}" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <select name="tipoFluxo" class="form-control" style="font-size: 12px; padding: 6px 10px;" onchange="this.form.submit()">
+                        <option value="TODOS" th:selected="${filtroFluxoAtual == 'TODOS'}">Todos os Fluxos</option>
+                        <option value="SAIDA_COMABEL" th:selected="${filtroFluxoAtual == 'SAIDA_COMABEL'}">🛒 Saídas da Empresa</option>
+                        <option value="ENTRADA_FORNECEDOR" th:selected="${filtroFluxoAtual == 'ENTRADA_FORNECEDOR'}">🏢 Entradas (Fornecedores)</option>
+                        <option value="TRANSFERENCIA_INTERNA" th:selected="${filtroFluxoAtual == 'TRANSFERENCIA_INTERNA'}">🔄 Transferências (Matriz/Filial)</option>
+                    </select>
+                </form>
+
+                <a th:href="@{/exportar/relatorio-executivo-pdf}" class="btn" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35); font-size: 12px;">
+                    <span>📄</span> Relatório Executivo (PDF)
+                </a>
+                <a th:href="@{/auditoria-xml/exportar-divergencias}" class="btn" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 12px;">
+                    <span>⚠️</span> Exportar Divergências (.xlsx)
+                </a>
+                <a th:href="@{/exportar/excel}" class="btn btn-secondary" style="font-size: 12px;">
+                    <span>📥</span> Exportar Excel
+                </a>
+            </div>
+        </header>
+
+        <!-- Card da Empresa Auditada -->
+        <section th:if="${empresaAuditada != null and empresaAuditada.isIdentificada()}" class="empresa-card">
+            <div class="empresa-info-left">
+                <div class="empresa-avatar">🏢</div>
+                <div>
+                    <div class="empresa-badge-tag">EMPRESA AUDITADA</div>
+                    <div class="empresa-nome" th:text="${empresaAuditada.razaoSocial}">COMABEL COMERCIO DE PRODUTOS DA CESTA BASICA LTDA</div>
+                    <div class="empresa-meta">
+                        <span class="empresa-meta-item"><strong>CNPJ Matriz:</strong> <span th:text="${empresaAuditada.cnpjPrincipal}">07.068.224/0001-84</span></span>
+                        <span>•</span>
+                        <span class="empresa-meta-item"><strong>UF:</strong> <span th:text="${empresaAuditada.uf}">MA</span> (<span th:text="${empresaAuditada.municipio}">Pedreiras</span>)</span>
+                        <span>•</span>
+                        <span class="empresa-meta-item"><strong>Período Auditado:</strong> <span th:text="${empresaAuditada.periodoAuditado}">Agosto / 2026</span></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card quando base estiver limpa -->
+        <section th:if="${empresaAuditada == null or !empresaAuditada.isIdentificada()}" class="empresa-card" style="background: rgba(100, 116, 139, 0.08); border: 1px dashed rgba(148, 163, 184, 0.35);">
+            <div class="empresa-info-left">
+                <div class="empresa-avatar">ℹ️</div>
+                <div>
+                    <div class="empresa-badge-tag" style="background: rgba(148, 163, 184, 0.2); color: #94a3b8;">BASE LIMPA</div>
+                    <div class="empresa-nome" style="color: #cbd5e1;">Nenhum documento fiscal carregado no momento</div>
+                    <div class="empresa-meta" style="color: var(--text-muted);">
+                        <span>A base local está vazia. Acesse o menu <a th:href="@{/auditoria-xml}" style="color: #38bdf8; font-weight: 600;">Auditoria de XMLs</a> para carregar uma pasta ou enviar arquivos XML / ZIP.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card Principal com Título -->
+        <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <h2 style="font-size: 18px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                <span>📊</span> Resumo de Tributação - IBS e CBS por Modelo
+            </h2>
+        </div>
+
+        <!-- Loop por cada Modelo (NF-e 55 e NFC-e 65) -->
+        <div th:each="resumo : ${resumosModelos}" class="content-card card-modelo" th:style="'border-top-color: ' + ${resumo.corTema}">
+            <!-- Cabeçalho do Modelo -->
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span th:if="${resumo.modelo == '55'}" class="badge" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-weight: 700; font-size: 13px;">MOD. 55</span>
+                    <span th:if="${resumo.modelo == '65'}" class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-weight: 700; font-size: 13px;">MOD. 65</span>
+                    <strong style="font-size: 15px; color: var(--text-primary);" th:text="${resumo.titulo}">NF-e (Modelo 55 - Emissão Normal)</strong>
+                </div>
+                <div style="font-size: 13px; color: var(--text-secondary);">
+                    <strong style="color: var(--text-primary);" th:text="${resumo.totalNotas} + ' notas'">0 notas</strong>
+                    <span> | Total: </span>
+                    <strong style="color: var(--text-primary);" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.valorTotalNotas, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</strong>
+                </div>
+            </div>
+
+            <!-- Caixas de Destaque: Total IBS Apurado e Total CBS Apurada -->
+            <div class="indicador-box-grid">
+                <div class="indicador-box ibs">
+                    <span class="indicador-label">Total IBS Apurado</span>
+                    <span class="indicador-val" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.totalIbsApurado, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                </div>
+                <div class="indicador-box cbs">
+                    <span class="indicador-label">Total CBS Apurada</span>
+                    <span class="indicador-val" th:text="'R$ ' + ${#numbers.formatDecimal(resumo.totalCbsApurada, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</span>
+                </div>
+            </div>
+
+            <!-- Tabela 1: Detalhamento por CST -->
+            <div class="section-subhead">
+                <span>📌</span> Detalhamento por CST:
+            </div>
+            <div class="table-responsive">
+                <table class="data-table table-indicadores">
+                    <thead>
+                        <tr>
+                            <th style="width: 140px;">CST</th>
+                            <th>Descrição</th>
+                            <th style="width: 110px; text-align: right;">Qtd Itens</th>
+                            <th style="width: 170px; text-align: right;">Base de Cálculo (vBC)</th>
+                            <th style="width: 150px; text-align: right;">IBS Total</th>
+                            <th style="width: 150px; text-align: right;">CBS Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${#lists.isEmpty(resumo.linhasCst)}">
+                            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 18px;">
+                                Nenhum item encontrado para este modelo.
+                            </td>
+                        </tr>
+                        <tr th:each="c : ${resumo.linhasCst}">
+                            <td>
+                                <strong th:if="${c.cst == 'Sem CST'}" style="color: #94a3b8;">Sem CST</strong>
+                                <span th:unless="${c.cst == 'Sem CST'}" class="badge badge-cclass" th:text="${c.cst}">CST 200</span>
+                            </td>
+                            <td th:text="${c.descricao}">Tributação Integral</td>
+                            <td class="val-num" th:text="${c.qtdItens}">0</td>
+                            <td class="val-num" th:text="'R$ ' + ${#numbers.formatDecimal(c.vBc, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                            <td class="val-ibs" th:text="'R$ ' + ${#numbers.formatDecimal(c.vIbs, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                            <td class="val-cbs" th:text="'R$ ' + ${#numbers.formatDecimal(c.vCbs, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Tabela 2: Detalhamento por Classificação Tributária (cClassTrib) -->
+            <div class="section-subhead" style="margin-top: 24px;">
+                <span>📌</span> Detalhamento por Classificação Tributária (cClassTrib):
+            </div>
+            <div class="table-responsive">
+                <table class="data-table table-indicadores">
+                    <thead>
+                        <tr>
+                            <th style="width: 160px;">cClassTrib</th>
+                            <th>Enquadramento / Descrição</th>
+                            <th style="width: 110px; text-align: right;">Qtd Itens</th>
+                            <th style="width: 170px; text-align: right;">Base de Cálculo (vBC)</th>
+                            <th style="width: 150px; text-align: right;">IBS Total</th>
+                            <th style="width: 150px; text-align: right;">CBS Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${#lists.isEmpty(resumo.linhasCClass)}">
+                            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 18px;">
+                                Nenhuma classificação identificada para este modelo.
+                            </td>
+                        </tr>
+                        <tr th:each="cl : ${resumo.linhasCClass}">
+                            <td>
+                                <strong th:if="${cl.cClassTrib == 'Sem cClassTrib'}" style="color: #94a3b8;">Sem cClassTrib</strong>
+                                <span th:unless="${cl.cClassTrib == 'Sem cClassTrib'}" class="badge badge-cclass" th:text="${cl.cClassTrib}">cClass 200003</span>
+                            </td>
+                            <td th:text="${cl.descricao}">Descrição da classificação oficial SVRS</td>
+                            <td class="val-num" th:text="${cl.qtdItens}">0</td>
+                            <td class="val-num" th:text="'R$ ' + ${#numbers.formatDecimal(cl.vBc, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                            <td class="val-ibs" th:text="'R$ ' + ${#numbers.formatDecimal(cl.vIbs, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                            <td class="val-cbs" th:text="'R$ ' + ${#numbers.formatDecimal(cl.vCbs, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+</body>
+</html>
